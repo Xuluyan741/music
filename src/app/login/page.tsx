@@ -7,7 +7,7 @@ const ERROR_MESSAGES: Record<string, string> = {
   Configuration: "服务配置错误，请检查 NEXTAUTH_URL、NEXTAUTH_SECRET 及 Google OAuth 配置。",
   AccessDenied: "拒绝访问。",
   Verification: "验证失败，链接可能已过期。",
-  OAuthCallback: "OAuth 回调失败，请确认 Google 控制台重定向 URI 为：https://你的域名/api/auth/callback/google",
+  OAuthCallback: "OAuth 回调失败，请见下方应填写的重定向 URI。",
   Default: "登录出错，请重试。",
 };
 
@@ -21,16 +21,26 @@ export default async function LoginPage({
     redirect("/dashboard");
   }
   const params = await searchParams;
-  const errorMsg = params.error ? (ERROR_MESSAGES[params.error] ?? params.error) : null;
+  const errorCode = params.error;
+  const errorMsg = errorCode ? (ERROR_MESSAGES[errorCode] ?? errorCode) : null;
+  const baseUrl = process.env.NEXTAUTH_URL?.replace(/\/$/, "") ?? "";
+  const callbackUrl = baseUrl ? `${baseUrl}/api/auth/callback/google` : "";
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-4 p-8">
       <h1 className="text-2xl font-semibold">音乐聆听追踪</h1>
       <p className="text-muted-foreground">使用 Google 账号登录，支持新用户注册</p>
       {errorMsg && (
-        <p className="rounded-md bg-destructive/15 px-3 py-2 text-sm text-destructive" role="alert">
-          {errorMsg}
-        </p>
+        <div className="rounded-md bg-destructive/15 px-3 py-2 text-sm text-destructive space-y-2" role="alert">
+          <p>{errorMsg}</p>
+          {errorCode === "OAuthCallback" && callbackUrl && (
+            <p className="mt-2 break-all font-mono text-xs">
+              Google 控制台「已授权的重定向 URI」中必须有一条<strong>完全一致</strong>（不能多空格、不能多结尾 /）：
+              <br />
+              <span className="mt-1 block rounded bg-black/10 p-2">{callbackUrl}</span>
+            </p>
+          )}
+        </div>
       )}
       <LoginForm />
       <a

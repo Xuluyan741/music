@@ -6,6 +6,7 @@ import { db } from "@/db";
 import { users, accounts, sessions, verificationTokens } from "@/db/schema";
 
 export const authOptions: AuthOptions = {
+  trustHost: true, // Vercel 等托管环境必须，否则回调后 session/cookie 可能异常
   adapter: DrizzleAdapter(db, {
     usersTable: users,
     accountsTable: accounts,
@@ -20,22 +21,56 @@ export const authOptions: AuthOptions = {
   ],
   pages: {
     signIn: "/login",
+    error: "/login", // 错误时回到登录页，通过 ?error= 显示原因
   },
   session: {
     strategy: "jwt" as const,
     maxAge: 30 * 24 * 60 * 60, // 30 days
   },
   callbacks: {
+    /** 登录后跳转：始终进 dashboard，避免被 redirect 回首页或登录页 */
+    redirect({ url, baseUrl }) {
+      const base = baseUrl.replace(/\/$/, "");
+      const toDashboard = `${base}/dashboard`;
+      if (url === "/" || url === base || url === base + "/" || url === "/login" || !url) return toDashboard;
+      if (url.startsWith("/") && url !== "/login") return `${base}${url}`;
+      try {
+        const u = new URL(url);
+        if (u.origin === base && u.pathname !== "/" && u.pathname !== "/login") return url;
+      } catch {
+        // ignore
+      }
+      return toDashboard;
+    },
     /**
-     * JWT 策略下把 user id 放进 token，供 session 回调使用
+     * JWT 策略：把 user id 和 hasSpotify 放进 token，避免每次请求都查库
      */
     async jwt({ token, user }) {
       if (user?.id) token.sub = user.id;
+
+      const userId = user?.id ?? token?.sub;
+      if (userId && typeof userId === "string") {
+        const CACHE_MS = 2 * 60 * 1000; // 2 分钟内有缓存则复用，减少 DB 请求；连接/断开 Spotify 后最多 2 分钟生效
+        const now = Date.now();
+        const cached =
+          token.hasSpotify !== undefined &&
+          typeof token.hasSpotifyAt === "number" &&
+          now - token.hasSpotifyAt < CACHE_MS;
+        if (!cached) {
+          const spotifyAccount = await db.query.accounts.findFirst({
+            where: and(
+              eq(accounts.userId, userId),
+              eq(accounts.provider, "spotify"),
+            ),
+          });
+          token.hasSpotify = !!spotifyAccount;
+          token.hasSpotifyAt = now;
+        }
+      }
       return token;
     },
     /**
-     * 在 Session 中附加 user.id 和 hasSpotify 标记
-     * JWT 策略时用 token.sub 查库，database 策略时用 user.id
+     * 从 token 读出 user.id 和 hasSpotify，不再在此处查库
      */
     async session({ session, token, user }) {
       if (!session.user) return session;
@@ -43,15 +78,8 @@ export const authOptions: AuthOptions = {
       const userId = user?.id ?? token?.sub;
       if (!userId || typeof userId !== "string") return session;
 
-      const spotifyAccount = await db.query.accounts.findFirst({
-        where: and(
-          eq(accounts.userId, userId),
-          eq(accounts.provider, "spotify"),
-        ),
-      });
-
       session.user.id = userId;
-      session.user.hasSpotify = !!spotifyAccount;
+      session.user.hasSpotify = token.hasSpotify === true;
 
       return session;
     },

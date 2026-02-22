@@ -12,3 +12,10 @@ declare module "next-auth" {
   }
 }
 
+declare module "next-auth/jwt" {
+  interface JWT {
+    hasSpotify?: boolean;
+    hasSpotifyAt?: number;
+  }
+}
+

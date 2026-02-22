@@ -6,7 +6,7 @@ import { db } from "@/db";
 import { users, accounts, sessions, verificationTokens } from "@/db/schema";
 
 export const authOptions: AuthOptions = {
-  trustHost: true, // Vercel 等托管环境必须，否则回调后 session/cookie 可能异常
+  // Vercel 会自动设置 VERCEL 环境变量，NextAuth 会据此信任 Host，无需 trustHost
   adapter: DrizzleAdapter(db, {
     usersTable: users,
     accountsTable: accounts,

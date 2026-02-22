@@ -33,6 +33,14 @@ export default async function LoginPage({
         </p>
       )}
       <LoginForm />
+      <a
+        href="/api/debug-auth"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="mt-4 text-xs text-muted-foreground underline hover:text-foreground"
+      >
+        登录异常？点此查看环境与 session 状态
+      </a>
     </div>
   );
 }

@@ -34,7 +34,8 @@
    - APIs & Services → Credentials → 你的 OAuth 2.0 客户端 ID → **已授权的重定向 URI**  
    - 必须有一条**完全一致**：`https://music-viu6.vercel.app/api/auth/callback/google`（若域名不同则改成你的 Vercel 域名）。  
 3. 若登录后回到登录页且**出现红色错误提示**，根据提示内容排查（如 Configuration = 检查上述配置；OAuthCallback = 检查 Google 重定向 URI）。  
-4. 代码里已设置登录后强制跳转 `/dashboard` 和 `trustHost: true`，部署最新代码后重试。
+4. **仍进不去时**：先点一次「使用 Google 登录」走完流程，然后打开 **https://你的域名/api/debug-auth**（如 `https://music-viu6.vercel.app/api/debug-auth`），看返回的 `hint` 和各项 true/false，按提示补全环境变量或检查 Google 重定向 URI 后 Redeploy 再试。  
+5. 代码里已设置登录后强制跳转 `/dashboard` 和 `trustHost: true`，部署最新代码后重试。
 
 ## 每日同步（Vercel Cron）
 

@@ -4,7 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/auth";
 import LogoutButton from "./logout-button";
 import SpotifySection from "./spotify-section";
-import TopList from "./top-list";
+import { TopList } from "./top-list";
 import SyncButton from "./sync-button";
 
 const SPOTIFY_ERROR_MESSAGES: Record<string, string> = {

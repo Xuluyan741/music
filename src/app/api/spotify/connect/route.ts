@@ -4,7 +4,7 @@ import { authOptions } from "@/auth";
 import crypto from "crypto";
 
 const SPOTIFY_SCOPES =
-  "user-read-email user-top-read user-read-recently-played";
+  "user-read-private user-read-email user-top-read user-read-recently-played";
 
 /**
  * 已登录用户点击「连接 Spotify」时调用。

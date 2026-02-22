@@ -95,9 +95,9 @@ export async function GET(request: Request) {
   });
 
   if (!spotifyUserRes.ok) {
-    return NextResponse.redirect(
-      `${dashboardUrl}?spotify_error=user_failed`,
-    );
+    const status = spotifyUserRes.status;
+    const params = new URLSearchParams({ spotify_error: "user_failed", user_failed_status: String(status) });
+    return NextResponse.redirect(`${dashboardUrl}?${params.toString()}`);
   }
 
   const spotifyUser = (await spotifyUserRes.json()) as { id: string };

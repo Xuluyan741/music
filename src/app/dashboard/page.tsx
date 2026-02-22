@@ -10,15 +10,21 @@ import SyncButton from "./sync-button";
 const SPOTIFY_ERROR_MESSAGES: Record<string, string> = {
   missing_code_or_state: "Spotify 未返回授权码，请重试。",
   invalid_state: "安全校验失败，请重新点击「连接 Spotify」。",
-  server_config: "服务未配置 SPOTIFY_REDIRECT_URI 等环境变量。",
-  token_failed: "获取 Spotify 令牌失败，请检查 Client ID/Secret 与 Redirect URI。",
+  server_config: "服务未配置 SPOTIFY_CLIENT_ID / SPOTIFY_CLIENT_SECRET 等环境变量。",
+  token_failed: "获取 Spotify 令牌失败，请检查 Client ID/Secret 与 Redirect URI 是否与 Spotify 后台完全一致。",
   user_failed: "获取 Spotify 用户信息失败。",
+};
+
+const USER_FAILED_HINTS: Record<string, string> = {
+  "401": "Token 无效或已过期，请先「断开 Spotify」再重新「连接 Spotify」。",
+  "403": "权限不足，请在 Spotify 应用设置中确认已勾选「查看你的 Spotify 账号数据」等权限。",
+  "429": "请求过于频繁，请稍后再试。",
 };
 
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ spotify_error?: string }>;
+  searchParams: Promise<{ spotify_error?: string; user_failed_status?: string }>;
 }) {
   const session = await getServerSession(authOptions);
 
@@ -29,8 +35,15 @@ export default async function DashboardPage({
   const hasSpotify = session.user.hasSpotify ?? false;
   const params = await searchParams;
   const spotifyError = params.spotify_error;
-  const spotifyErrorMsg =
+  const userFailedStatus = params.user_failed_status;
+  let spotifyErrorMsg =
     spotifyError && (SPOTIFY_ERROR_MESSAGES[spotifyError] ?? spotifyError);
+  if (spotifyError === "user_failed" && userFailedStatus) {
+    const hint = USER_FAILED_HINTS[userFailedStatus];
+    spotifyErrorMsg = hint
+      ? `获取 Spotify 用户信息失败（HTTP ${userFailedStatus}）。${hint}`
+      : `获取 Spotify 用户信息失败（HTTP ${userFailedStatus}）。请先「断开 Spotify」再重新「连接 Spotify」试一次。`;
+  }
 
   return (
     <div className="flex min-h-screen flex-col gap-6 p-8">
